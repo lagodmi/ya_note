@@ -1,7 +1,11 @@
 from django.conf import settings
 from django.db import models
+from django.contrib.auth import get_user_model
 
 from pytils.translit import slugify
+
+
+User = get_user_model()
 
 
 class Note(models.Model):
@@ -23,10 +27,8 @@ class Note(models.Model):
         help_text=('Укажите адрес для страницы заметки. Используйте только '
                    'латиницу, цифры, дефисы и знаки подчёркивания')
     )
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-    )
+    author = models.ForeignKey(User,
+                               on_delete=models.CASCADE,)
 
     def __str__(self):
         return self.title
