@@ -1,0 +1,70 @@
+from http import HTTPStatus
+
+from django.test import TestCase
+from django.urls import reverse
+from django.contrib.auth import get_user_model
+
+from notes.models import Note
+
+
+User = get_user_model()
+
+
+class TestRoutes(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        # Создаём двух пользователей с разными именами:
+        cls.author = User.objects.create(username='Лев Толстой')
+        cls.reader = User.objects.create(username='Читатель простой')
+        cls.note = Note.objects.create(title='Заголовок',
+                                       text='Текст',
+                                       author=cls.author)
+
+    def test_pages_availability(self):
+        urls = (
+            'notes:home',
+            'users:login',
+            'users:logout',
+            'users:signup',
+        )
+        for name in urls:
+            with self.subTest(name=name):
+                url = reverse(name)
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_availability_for_done_notes_add(self):
+        urls = (
+            'notes:success',
+            'notes:list',
+            'notes:add',
+        )
+        user = self.reader
+        self.client.force_login(user)
+        for name in urls:
+            with self.subTest(user=user, name=name):
+                url = reverse(name)
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_availability_for_detail_edit_delete(self):
+        users_statuses = (
+            (self.author, HTTPStatus.OK),
+            (self.reader, HTTPStatus.NOT_FOUND),
+        )
+        urls = (
+            'notes:detail',
+            'notes:edit',
+            'notes:delete',
+        )
+        for user, status in users_statuses:
+            # Логиним пользователя в клиенте:
+            self.client.force_login(user)
+            # Для каждой пары "пользователь - ожидаемый ответ"
+            # перебираем имена тестируемых страниц:
+            for name in urls:
+                with self.subTest(user=user, name=name):
+                    url = reverse(name, args=(self.note.slug,))
+                    response = self.client.get(url)
+                    self.assertEqual(response.status_code, status)
