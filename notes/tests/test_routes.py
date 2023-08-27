@@ -68,3 +68,28 @@ class TestRoutes(TestCase):
                     url = reverse(name, args=(self.note.slug,))
                     response = self.client.get(url)
                     self.assertEqual(response.status_code, status)
+
+    def test_redirect_for_anonymous_client(self):
+        # Сохраняем адрес страницы логина:
+        login_url = reverse('users:login')
+        urls = (
+            ('notes:list', None),
+            ('notes:add', None),
+            ('notes:success', None),
+            ('notes:detail', (self.note.slug,)),
+            ('notes:edit', (self.note.slug,)),
+            ('notes:delete', (self.note.slug,)),
+        )
+        # В цикле перебираем имена страниц, с которых ожидаем редирект:
+        for name, slug in urls:
+            with self.subTest(name=name):
+                # Получаем адрес страницы редактирования или удаления комментария:
+                url = reverse(name, args=slug)
+                # Получаем ожидаемый адрес страницы логина, 
+                # на который будет перенаправлен пользователь.
+                # Учитываем, что в адресе будет параметр next, в котором передаётся
+                # адрес страницы, с которой пользователь был переадресован.
+                redirect_url = f'{login_url}?next={url}'
+                response = self.client.get(url)
+                # Проверяем, что редирект приведёт именно на указанную ссылку.
+                self.assertRedirects(response, redirect_url)
